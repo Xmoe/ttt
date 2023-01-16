@@ -1,7 +1,9 @@
 [package]
 name = "ttt"
 version = "0.1.0"
+authors = ["Moritz Breipohl <mbreipohl@techfak.de>"]
 edition = "2021"
+default-run = "ttt"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
