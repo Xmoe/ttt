@@ -30,38 +30,44 @@ impl TestRunnerInteractions for TestRunner {
     // TODO: How to handle escape characters?
 
     fn run(mut self) -> Result<(), TestRunnerError> {
-        for instruction in &self.instructions {
-            match instruction.kind {
-                InstructionType::LaunchProcess => {
+        for instruction in self.instructions {
+            match instruction {
+                Instruction::LaunchProcess(payload, process_id) => {
                     let process = rexpect::spawn(
-                        &instruction.payload,
+                        &payload,
                         Some(self.timeout.as_millis() as u64),
                     )?;
-                    self.processes.insert(instruction.process_id, process);
+                    self.processes.insert(process_id, process);
                 }
 
-                InstructionType::ExpectStdout => {
+                Instruction::ExpectStdout(payload, process_id) => {
                     let process = self
                         .processes
-                        .get_mut(&instruction.process_id)
+                        .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    let _ = process.exp_string(&instruction.payload)?;
-                    println!("Successfully found '{}'", instruction.payload);
+                    let _ = process.exp_string(&payload)?;
+                    println!("Successfully found '{}'", payload);
                 }
 
-                InstructionType::PutStdin => {
+                Instruction::PutStdin(payload, process_id) => {
                     let process = self
                         .processes
-                        .get_mut(&instruction.process_id)
+                        .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    process.send_line(&instruction.payload)?;
+                    process.send_line(&payload)?;
                 }
 
-                InstructionType::ExpectRegex => todo!(),
-                InstructionType::SendControlCharacter => todo!(),
-                InstructionType::ExpectExitCode => todo!(),
-                InstructionType::SetTimeout => todo!(),
-                InstructionType::SetVariable => todo!(),
+                Instruction::ExpectRegex(payload, process_id) => {
+                    let process = self
+                        .processes
+                        .get_mut(&process_id)
+                        .ok_or(TestRunnerError::InvalidProcess)?;
+                    process.exp_regex(&payload)?;
+                }
+                Instruction::SendControlCharacter(payload, process_id) => todo!(),
+                Instruction::ExpectExitCode(payload, process_id) => todo!(),
+                Instruction::SetTimeout(payload) => todo!(),
+                Instruction::SetVariable(payload) => todo!(),
             }
         }
 

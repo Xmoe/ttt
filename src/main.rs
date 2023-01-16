@@ -6,9 +6,9 @@ use crate::test_runner::*;
 
 fn main() {
     let test_instructions = vec![
-        Instruction::new(InstructionType::LaunchProcess, 0, "uname".into()),
-        Instruction::new(InstructionType::PutStdin, 0, "wololo".into()),
-        Instruction::new(InstructionType::ExpectStdout, 0, "Linux".into()),
+        Instruction::LaunchProcess("uname".into(), 0),
+        Instruction::PutStdin("wololo".into(), 0),
+        Instruction::ExpectStdout("Linux".into(), 0),
     ];
 
     let runner = TestRunner::new(test_instructions);
