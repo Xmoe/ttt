@@ -4,11 +4,13 @@ $ ./starte_programm mit kommandozeilenargumenten
 < schiebe daten auf stdinput
 > erwarte einen bestimmten output, encoded Sonderzeichen!
 ~ erwarte einen output, match mit regex
-r erwarte einen bestimmten output, 
 ^ sende CTRL character an Programm
 ? erwarte einen exit code
 = setze eine Variable für den Programmablauf
 t lege den Timeout für alle Interaktionen mit diesem Programm fest
+
+Inputs und Outputs werden immer escaped; \n wird als Newline 0xA interpretiert
+Welche Zeichen werden escaped? (https://doc.rust-lang.org/reference/tokens.html#character-escapes)
 
 Eine Interaktion ist definiert als ein optionaler Input (<) und ein Output (>,r)
 

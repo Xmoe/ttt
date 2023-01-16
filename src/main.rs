@@ -50,7 +50,6 @@ impl TestRunnerInteractions for TestRunner {
                 }
 				
                 InstructionType::ExpectRegex => todo!(),
-                InstructionType::ExpectRawStdout => todo!(),
                 InstructionType::SendControlCharacter => todo!(),
                 InstructionType::ExpectExitCode => todo!(),
                 InstructionType::SetTimeout => todo!(),
@@ -77,7 +76,6 @@ enum InstructionType {
     PutStdin,             // <
     ExpectStdout,         // >
     ExpectRegex,          // ~
-    ExpectRawStdout,      // r
     SendControlCharacter, // ^
     ExpectExitCode,       // ?
     SetTimeout,           // t
