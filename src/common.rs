@@ -30,6 +30,8 @@ pub enum TestRunnerError {
     InvalidProcess,
     #[error("Wrong exit code")]
     WrongExitCode,
+    #[error("Process killed by signal or somethin")]
+    WronglyExited,
     #[error(transparent)]
     RexpectError(#[from] rexpect::error::Error),
 }

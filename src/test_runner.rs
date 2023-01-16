@@ -42,7 +42,6 @@ impl TestRunnerInteractions for TestRunner {
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
                     let _ = process.exp_string(&payload)?;
-                    println!("Successfully found '{}'", payload);
                 }
 
                 Instruction::PutStdin(payload, process_id) => {
@@ -68,7 +67,7 @@ impl TestRunnerInteractions for TestRunner {
                         .ok_or(TestRunnerError::InvalidProcess)?;
                     process.send_control(char)?;
                 }
-                
+
                 Instruction::ExpectExitCode(expected_exit_code, process_id) => {
                     let process = self
                         .processes
@@ -78,12 +77,12 @@ impl TestRunnerInteractions for TestRunner {
 
                     //TODO: maybe set default timeout again for safety, because wait is blocking!
                     if let Ok(WaitStatus::Exited(_, exit_code)) = process.process.wait() {
-                        if exit_code == expected_exit_code {
-                            return Ok(())
+                        if exit_code != expected_exit_code {
+                            return Err(TestRunnerError::WrongExitCode)
                         }
+                    } else {
+                        return Err(TestRunnerError::WronglyExited)
                     }
-
-                    return Err(TestRunnerError::WrongExitCode)
                 }
                 //Instruction::SetTimeout(payload) => todo!(),
                 //Instruction::SetVariable(payload) => todo!(),
