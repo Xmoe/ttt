@@ -1,5 +1,6 @@
 use crate::common::*;
 
+use rexpect::process::wait::WaitStatus;
 use rexpect::session::PtySession;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -7,36 +8,31 @@ use std::time::Duration;
 pub struct TestRunner {
     timeout: Duration,
     processes: HashMap<u8, PtySession>,
-    instructions: Vec<Instruction>,
+    test_case: SingleTest,
     variables: HashMap<String, String>,
 }
 
 pub trait TestRunnerInteractions {
-    fn new(instructions: Vec<Instruction>) -> Self;
+    fn new(instructions: SingleTest) -> Self;
     fn run(self) -> Result<(), TestRunnerError>;
     fn set_variables(&self, variables: HashMap<String, String>);
 }
 
 impl TestRunnerInteractions for TestRunner {
-    fn new(instructions: Vec<Instruction>) -> TestRunner {
+    fn new(test_case: SingleTest) -> TestRunner {
         TestRunner {
             timeout: Duration::from_secs(5),
             processes: HashMap::new(),
-            instructions,
+            test_case,
             variables: HashMap::new(),
         }
     }
 
-    // TODO: How to handle escape characters?
-
     fn run(mut self) -> Result<(), TestRunnerError> {
-        for instruction in self.instructions {
+        for instruction in self.test_case.instructions {
             match instruction {
                 Instruction::LaunchProcess(payload, process_id) => {
-                    let process = rexpect::spawn(
-                        &payload,
-                        Some(self.timeout.as_millis() as u64),
-                    )?;
+                    let process = rexpect::spawn(&payload, Some(self.timeout.as_millis() as u64))?;
                     self.processes.insert(process_id, process);
                 }
 
@@ -64,10 +60,33 @@ impl TestRunnerInteractions for TestRunner {
                         .ok_or(TestRunnerError::InvalidProcess)?;
                     process.exp_regex(&payload)?;
                 }
-                Instruction::SendControlCharacter(payload, process_id) => todo!(),
-                Instruction::ExpectExitCode(payload, process_id) => todo!(),
-                Instruction::SetTimeout(payload) => todo!(),
-                Instruction::SetVariable(payload) => todo!(),
+
+                Instruction::SendControlCharacter(char, process_id) => {
+                    let process = self
+                        .processes
+                        .get_mut(&process_id)
+                        .ok_or(TestRunnerError::InvalidProcess)?;
+                    process.send_control(char)?;
+                }
+                
+                Instruction::ExpectExitCode(expected_exit_code, process_id) => {
+                    let process = self
+                        .processes
+                        .get_mut(&process_id)
+                        .ok_or(TestRunnerError::InvalidProcess)?;
+
+
+                    //TODO: maybe set default timeout again for safety, because wait is blocking!
+                    if let Ok(WaitStatus::Exited(_, exit_code)) = process.process.wait() {
+                        if exit_code == expected_exit_code {
+                            return Ok(())
+                        }
+                    }
+
+                    return Err(TestRunnerError::WrongExitCode)
+                }
+                //Instruction::SetTimeout(payload) => todo!(),
+                //Instruction::SetVariable(payload) => todo!(),
             }
         }
 
