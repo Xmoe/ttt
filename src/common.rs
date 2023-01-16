@@ -12,6 +12,7 @@ pub struct SingleTest {
 
 type ProcessID = u8;
 type Payload = String;
+type ExitCode = i32;
 
 pub enum Instruction {
     LaunchProcess(Payload, ProcessID),     // $
@@ -19,7 +20,7 @@ pub enum Instruction {
     ExpectStdout(Payload, ProcessID),      // >
     ExpectRegex(Payload, ProcessID),       // ~
     SendControlCharacter(char, ProcessID), // ^
-    ExpectExitCode(i32, ProcessID),         // ?
+    ExpectExitCode(ExitCode, ProcessID),   // ?
                                            //SetTimeout(Payload),                      // t
                                            //SetVariable(Payload),                     // =
 }
