@@ -3,8 +3,9 @@ mod test_runner;
 
 use crate::common::*;
 use crate::test_runner::*;
+use anyhow::Result;
 
-fn main() {
+fn main() -> Result<()> {
     let instructions = vec![
         Instruction::LaunchProcess("uname".into(), 0),
         Instruction::PutStdin("wololo".into(), 0),
@@ -22,10 +23,7 @@ fn main() {
     };
 
     let runner = TestRunner::new(test_case);
-
-    if let Ok(_) = runner.run() {
-        println!("Test ran successfully!")
-    } else {
-        println!("Test failed!")
-    }
+    runner.run()?;
+    println!("Test ran successfully!");
+    Ok(())
 }

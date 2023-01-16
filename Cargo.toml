@@ -8,5 +8,6 @@ default-run = "ttt"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.68"
 rexpect = "0.5.0"
 thiserror = "1.0.38"
