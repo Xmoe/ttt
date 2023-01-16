@@ -210,6 +210,7 @@ name = "ttt"
 version = "0.1.0"
 dependencies = [
  "rexpect",
+ "thiserror",
 ]
 
 [[package]]

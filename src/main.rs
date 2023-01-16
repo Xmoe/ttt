@@ -2,6 +2,7 @@ use rexpect;
 use rexpect::session::PtySession;
 use std::collections::HashMap;
 use std::time::Duration;
+use thiserror::Error;
 
 struct TestRunner {
     timeout: Duration,
@@ -12,7 +13,7 @@ struct TestRunner {
 
 trait TestRunnerInteractions {
     fn new(instructions: Vec<Instruction>) -> TestRunner;
-    fn run(self) -> Result<(), rexpect::error::Error>;
+    fn run(self) -> Result<(), TestRunnerError>;
     fn set_variables(&self, variables: HashMap<String, String>);
 }
 
@@ -28,27 +29,34 @@ impl TestRunnerInteractions for TestRunner {
 
     // TODO: How to handle escape characters?
 
-    fn run(mut self) -> Result<(), rexpect::error::Error> {
+    fn run(mut self) -> Result<(), TestRunnerError> {
         for instruction in &self.instructions {
             match instruction.kind {
                 InstructionType::LaunchProcess => {
-                    let process =
-                        rexpect::spawn(&instruction.payload, Some(self.timeout.as_millis() as u64))?;
+                    let process = rexpect::spawn(
+                        &instruction.payload,
+                        Some(self.timeout.as_millis() as u64),
+                    )?;
                     self.processes.insert(instruction.process_id, process);
                 }
 
                 InstructionType::ExpectStdout => {
-                    let process = self.processes.get_mut(&instruction.process_id).unwrap();
+                    let process = self
+                        .processes
+                        .get_mut(&instruction.process_id)
+                        .ok_or(TestRunnerError::InvalidProcess)?;
                     let _ = process.exp_string(&instruction.payload)?;
                     println!("Successfully found '{}'", instruction.payload);
                 }
 
                 InstructionType::PutStdin => {
-					// TODO: own error types
-                    let process = self.processes.get_mut(&instruction.process_id).ok_or(rexpect::error::Error::EmptyProgramName)?;
+                    let process = self
+                        .processes
+                        .get_mut(&instruction.process_id)
+                        .ok_or(TestRunnerError::InvalidProcess)?;
                     process.send_line(&instruction.payload)?;
                 }
-				
+
                 InstructionType::ExpectRegex => todo!(),
                 InstructionType::SendControlCharacter => todo!(),
                 InstructionType::ExpectExitCode => todo!(),
@@ -80,6 +88,14 @@ enum InstructionType {
     ExpectExitCode,       // ?
     SetTimeout,           // t
     SetVariable,          // =
+}
+
+#[derive(Error, Debug)]
+enum TestRunnerError {
+    #[error("Invalid Process ID")]
+    InvalidProcess,
+    #[error(transparent)]
+    RexpectError(#[from] rexpect::error::Error),
 }
 
 fn main() {
