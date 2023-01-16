@@ -6,6 +6,20 @@ pub struct Instruction {
     pub payload: String,
 }
 
+pub trait InstructionInteractions {
+    fn new(kind: InstructionType, process_id: u8, payload: String) -> Self;
+}
+
+impl InstructionInteractions for Instruction {
+    fn new(kind: InstructionType, process_id: u8, payload: String) -> Self {
+        Instruction {
+            kind,
+            process_id,
+            payload,
+        }
+    }
+}
+
 pub enum InstructionType {
     LaunchProcess,        // $
     PutStdin,             // <
