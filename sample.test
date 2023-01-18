@@ -1,0 +1,17 @@
+# The parser looks somewhat stable right now, yay :D
+
+[First test]
+$ echo blub
+> blub
+? 0
+
+[Second test]
+$ uname
+r (l|L)inux
+? 0
+
+[Third test]
+1$ sleep 10
+1^ C
+
+# Hopefully this file can be parsed

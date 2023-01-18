@@ -12,7 +12,7 @@ Operatoren:
 $ ./starte_programm mit kommandozeilenargumenten
 < schiebe daten auf stdinput
 > erwarte einen bestimmten output, encoded Sonderzeichen!
-~ erwarte einen output, match mit regex
+r erwarte einen output, match mit regex
 ^ sende CTRL character an Programm
 ? erwarte einen exit code
 = setze eine Variable für den Programmablauf

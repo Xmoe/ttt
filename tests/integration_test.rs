@@ -8,7 +8,7 @@ fn sample_test() -> Result<(), TestRunnerError> {
         Instruction::ExpectExitCode(0, 0),
     ];
 
-    let test_case = SingleTest {
+    let test_case = TestCase {
         name: "Example".into(),
         instructions,
     };
@@ -32,7 +32,7 @@ fn use_each_instruction() -> Result<(), TestRunnerError> {
         Instruction::ExpectExitCode(0, 1),
     ];
 
-    let test_case = SingleTest {
+    let test_case = TestCase {
         name: "Beispiel".into(),
         instructions,
     };
@@ -49,11 +49,10 @@ fn verify_control_character() {
     let instructions = vec![
         Instruction::LaunchProcess("sleep 100".into(), 0),
         Instruction::SendControlCharacter('C', 0),
-        Instruction::ExpectExitCode(0, 0)
-
+        Instruction::ExpectExitCode(0, 0),
     ];
 
-    let test_case = SingleTest {
+    let test_case = TestCase {
         name: "Beispiel".into(),
         instructions,
     };

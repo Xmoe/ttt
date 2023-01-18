@@ -8,27 +8,19 @@ use std::time::Duration;
 pub struct TestRunner {
     timeout: Duration,
     processes: HashMap<u8, PtySession>,
-    test_case: SingleTest,
-    variables: HashMap<String, String>,
+    test_case: TestCase,
 }
 
-pub trait TestRunnerInteractions {
-    fn new(instructions: SingleTest) -> Self;
-    fn run(self) -> Result<(), TestRunnerError>;
-    fn set_variables(&self, variables: HashMap<String, String>);
-}
-
-impl TestRunnerInteractions for TestRunner {
-    fn new(test_case: SingleTest) -> TestRunner {
+impl TestRunner {
+    pub fn new(test_case: TestCase) -> TestRunner {
         TestRunner {
             timeout: Duration::from_secs(5),
             processes: HashMap::new(),
             test_case,
-            variables: HashMap::new(),
         }
     }
 
-    fn run(mut self) -> Result<(), TestRunnerError> {
+    pub fn run(mut self) -> Result<(), TestRunnerError> {
         for instruction in self.test_case.instructions {
             match instruction {
                 Instruction::LaunchProcess(payload, process_id) => {
@@ -90,9 +82,5 @@ impl TestRunnerInteractions for TestRunner {
         }
 
         Ok(())
-    }
-
-    fn set_variables(&self, variables: HashMap<String, String>) {
-        todo!()
     }
 }

@@ -1,12 +1,12 @@
-EOL = { NEWLINE | &EOI}
+EOL = _{ NEWLINE+ | &EOI}
 
 HeaderOpen = _{ "[" }
 HeaderClose = _{ "]" }
-TestCaseName = ${ (!HeaderClose ~ !NEWLINE ~ ANY)+ }
-TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ NEWLINE+ }
+TestCaseName = ${ (!HeaderClose ~ !EOL ~ ANY)+ }
+TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ EOL }
 
 ProcessNumber = { ASCII_DIGIT }
-Payload = ${ (!NEWLINE ~ ANY)* ~ &NEWLINE }
+Payload = ${ (!NEWLINE ~ ANY)* ~ &EOL }
 
 IdentifierLaunch = { "$" }
 IdentifierStdin = { "<" }
@@ -15,14 +15,16 @@ IdentifierRegex = { "r" }
 IdentifierControlChar = { "^" }
 IdentifierExitCode = { "?" }
 
-InstructionIdentifier = { IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierControlChar | IdentifierExitCode }
+// TODO: better categorising of Instructions
 
-Instruction = { ProcessNumber? ~ InstructionIdentifier ~ " " ~ Payload ~ (NEWLINE+| &EOI)}
+InstructionIdentifier = { (IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierControlChar | IdentifierExitCode) ~ " " }
+
+Instruction = { ProcessNumber? ~ InstructionIdentifier ~ Payload ~ EOL}
 
 TestCase = { TestCaseHeader ~ Instruction+ }
 
-COMMENT = { ("#" ~ (!NEWLINE ~ ANY)* ~ NEWLINE+) }
+COMMENT = _{ ("#" ~ (!NEWLINE ~ ANY)* ~ EOL) }
 
 // It's important to add SOI and EOI to tell the parser to validate the whole input.
 // Otherwise it may silently fail somewhere in the middle when it encounters and invalid input
-TestSuite = _{ SOI ~ (NEWLINE|COMMENT)* ~ TestCase* ~ EOI}
+TestSuite = { SOI ~ (NEWLINE|COMMENT)* ~ TestCase* ~ EOL}
