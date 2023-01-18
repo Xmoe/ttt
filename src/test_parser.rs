@@ -16,7 +16,6 @@ pub fn parse(input: &str) -> Result<TestSuite, PestError> {
     Ok(parse_test_suite(pair)?)
 }
 
-
 fn parse_test_suite(pair: pest::iterators::Pair<Rule>) -> Result<TestSuite, PestError> {
     let mut test_suite_builder = TestSuiteBuilder::default();
     test_suite_builder.name("hardcoded lol".into());
@@ -66,7 +65,7 @@ fn parse_instruction(pair: pest::iterators::Pair<Rule>) -> Instruction {
             Rule::Payload => payload = Some(pair.as_str().to_owned()),
             Rule::ProcessNumber => process_id = Some(pair.as_str().parse::<u8>().unwrap()),
             Rule::InstructionIdentifier => rule = Some(pair.into_inner().next().unwrap().as_rule()),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -104,7 +103,7 @@ fn parse_instruction(pair: pest::iterators::Pair<Rule>) -> Instruction {
     );
 }
 
-pub fn print_tree(input: &str) -> Result<(), PestError>{
+pub fn print_tree(input: &str) -> Result<(), PestError> {
     let pairs = TestFileParser::parse(Rule::TestSuite, input)?;
 
     for pair in pairs {
