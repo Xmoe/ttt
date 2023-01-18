@@ -1,0 +1,28 @@
+EOL = { NEWLINE | &EOI}
+
+HeaderOpen = _{ "[" }
+HeaderClose = _{ "]" }
+TestCaseName = ${ (!HeaderClose ~ !NEWLINE ~ ANY)+ }
+TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ NEWLINE+ }
+
+ProcessNumber = { ASCII_DIGIT }
+Payload = ${ (!NEWLINE ~ ANY)* ~ &NEWLINE }
+
+IdentifierLaunch = { "$" }
+IdentifierStdin = { "<" }
+IdentifierStdout = { ">" }
+IdentifierRegex = { "r" }
+IdentifierControlChar = { "^" }
+IdentifierExitCode = { "?" }
+
+InstructionIdentifier = { IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierControlChar | IdentifierExitCode }
+
+Instruction = { ProcessNumber? ~ InstructionIdentifier ~ " " ~ Payload ~ (NEWLINE+| &EOI)}
+
+TestCase = { TestCaseHeader ~ Instruction+ }
+
+COMMENT = { ("#" ~ (!NEWLINE ~ ANY)* ~ NEWLINE+) }
+
+// It's important to add SOI and EOI to tell the parser to validate the whole input.
+// Otherwise it may silently fail somewhere in the middle when it encounters and invalid input
+TestSuite = _{ SOI ~ (NEWLINE|COMMENT)* ~ TestCase* ~ EOI}
