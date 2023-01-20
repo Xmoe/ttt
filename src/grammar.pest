@@ -1,16 +1,28 @@
-EOL = _{ NEWLINE+ | &EOI}
-Space = _{ " " }
+// It's important to add SOI and EOI to tell the parser to validate the whole input.
+// Otherwise it may silently fail somewhere in the middle when it encounters and invalid input
+TestSuite = { SOI ~ (NEWLINE|COMMENT)* ~ TestCase* ~ EOL}
 
+COMMENT = _{ ("#" ~ (!NEWLINE ~ ANY)* ~ EOL) }
+
+TestCase = { TestCaseHeader ~ Instructions }
+
+TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ EOL }
+TestCaseName = ${ (!HeaderClose ~ !EOL ~ ANY)+ }
 HeaderOpen = _{ "[" }
 HeaderClose = _{ "]" }
 
-// This is a match on ANYthing, that is not EOL and not HeaderClose, multiple times
-TestCaseName = ${ (!HeaderClose ~ !EOL ~ ANY)+ }
-TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ EOL }
+Instructions = _{ (InstructionWithPayload | InstructionControlChar | InstructionExitCode)+ }
 
-ProcessNumber = { ASCII_DIGIT }
+InstructionWithPayload = { ProcessNumber? ~ InstructionIdentifier ~ Space ~ Payload ~ EOL}
 Payload = ${ (!NEWLINE ~ ANY)* ~ &EOL }
 
+InstructionExitCode = { ProcessNumber? ~ IdentifierExitCode ~ Space ~ ExitCode ~ EOL}
+ExitCode = { ASCII_DIGIT+ ~ &EOL}
+
+InstructionControlChar = { ProcessNumber? ~ IdentifierControlChar ~ Space ~ ControlChar ~ EOL}
+ControlChar = { ASCII ~ &EOL}
+
+InstructionIdentifier = { (IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierExitCode) }
 IdentifierLaunch = { "$" }
 IdentifierStdin = { "<" }
 IdentifierStdout = { ">" }
@@ -18,16 +30,7 @@ IdentifierRegex = { "r" }
 IdentifierControlChar = { "^" }
 IdentifierExitCode = { "?" }
 
-// TODO: better categorising of Instructions
+ProcessNumber = { ASCII_DIGIT }
 
-InstructionIdentifier = { (IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierControlChar | IdentifierExitCode) }
-
-Instruction = { ProcessNumber? ~ InstructionIdentifier ~ Space ~ Payload ~ EOL}
-
-TestCase = { TestCaseHeader ~ Instruction+ }
-
-COMMENT = _{ ("#" ~ (!NEWLINE ~ ANY)* ~ EOL) }
-
-// It's important to add SOI and EOI to tell the parser to validate the whole input.
-// Otherwise it may silently fail somewhere in the middle when it encounters and invalid input
-TestSuite = { SOI ~ (NEWLINE|COMMENT)* ~ TestCase* ~ EOL}
+EOL = _{ NEWLINE+ | &EOI}
+Space = _{ " " }
