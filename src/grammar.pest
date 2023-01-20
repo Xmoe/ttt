@@ -4,31 +4,27 @@ TestSuite = { SOI ~ (NEWLINE|COMMENT)* ~ TestCase* ~ EOL}
 
 COMMENT = _{ ("#" ~ (!NEWLINE ~ ANY)* ~ EOL) }
 
-TestCase = { TestCaseHeader ~ Instructions }
+TestCase = { TestCaseHeader ~ Instruction+ }
 
 TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ EOL }
 TestCaseName = ${ (!HeaderClose ~ !EOL ~ ANY)+ }
 HeaderOpen = _{ "[" }
 HeaderClose = _{ "]" }
 
-Instructions = _{ (InstructionWithPayload | InstructionControlChar | InstructionExitCode)+ }
+Instruction = { InstructionLaunch | InstructionStdin | InstructionStdout | InstructionRegex | InstructionExitCode | InstructionControlChar }
 
-InstructionWithPayload = { ProcessNumber? ~ InstructionIdentifier ~ Space ~ Payload ~ EOL}
+InstructionLaunch = { ProcessNumber? ~ "$" ~ Space ~ Payload ~ EOL }
+InstructionStdin = { ProcessNumber? ~ "<" ~ Space ~ Payload ~ EOL }
+InstructionStdout = { ProcessNumber? ~ ">" ~ Space ~ Payload ~ EOL }
+InstructionRegex = { ProcessNumber? ~ "r" ~ Space ~ Payload ~ EOL }
 Payload = ${ (!NEWLINE ~ ANY)* ~ &EOL }
 
-InstructionExitCode = { ProcessNumber? ~ IdentifierExitCode ~ Space ~ ExitCode ~ EOL}
+InstructionExitCode = { ProcessNumber? ~ "?" ~ Space ~ ExitCode ~ EOL}
 ExitCode = { ASCII_DIGIT+ ~ &EOL}
 
-InstructionControlChar = { ProcessNumber? ~ IdentifierControlChar ~ Space ~ ControlChar ~ EOL}
+InstructionControlChar = { ProcessNumber? ~ "^" ~ Space ~ ControlChar ~ EOL}
 ControlChar = { ASCII ~ &EOL}
 
-InstructionIdentifier = { (IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierExitCode) }
-IdentifierLaunch = { "$" }
-IdentifierStdin = { "<" }
-IdentifierStdout = { ">" }
-IdentifierRegex = { "r" }
-IdentifierControlChar = { "^" }
-IdentifierExitCode = { "?" }
 
 ProcessNumber = { ASCII_DIGIT }
 

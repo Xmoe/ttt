@@ -50,9 +50,8 @@ impl TestRunner {
     pub fn run(mut self) -> Result<(), TestRunnerError> {
         for instruction in self.test_case.instructions {
             let process_id = instruction.process_id;
-            let payload = instruction.payload;
-            match instruction.kind {
-                InstructionType::LaunchProcess => {
+            match instruction.specialization {
+                InstructionType::LaunchProcess(payload) => {
 
                     // rexpect gives no way to check whether a process has been successfully created until something is expected :(
                     // Use rust-psutil to detect aliveness of the program?

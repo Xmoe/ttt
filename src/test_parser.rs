@@ -1,7 +1,6 @@
 use pest::{iterators::Pairs, Parser};
 use pest_derive::Parser;
 
-use crate::ast::*;
 use crate::common::*;
 
 #[derive(Parser)]
@@ -16,7 +15,6 @@ pub fn parse_to_ast(input: &str) -> Result<TestSuite, PestError> {
     Ok(TestSuite::parse_from(pair))
 }
 
-
 impl TestSuite {
     pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = TestSuiteBuilder::default();
@@ -29,7 +27,7 @@ impl TestSuite {
                 Rule::TestCase => {
                     test_cases.push(TestCase::parse_from(pair));
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }
         }
 
@@ -49,7 +47,7 @@ impl TestCase {
                     builder.name(pair.as_str().into());
                 }
                 Rule::Instruction => instructions.push(Instruction::parse_from(pair)),
-                _ => unreachable!(),
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }
         }
 
@@ -60,21 +58,58 @@ impl TestCase {
 
 impl Instruction {
     pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
-        let mut builder = InstructionBuilder::default();
-        builder.process_id(0);
+        println!("len: {}", pair.clone().into_inner().count());
+        for pair in pair.into_inner() {
+            // get inner values before assigning them to their concrete type
+            let payload = InstructionPayload::parse_from(pair.clone());
+
+            println!("{:?}", pair.as_rule());
+            match pair.as_rule() {
+                Rule::InstructionLaunch => return Instruction::LaunchProcess(payload),
+                Rule::InstructionStdin => return Instruction::SendStdin(payload),
+                Rule::InstructionStdout => return Instruction::ExpectStdout(payload),
+                Rule::InstructionRegex => return Instruction::ExpectRegex(payload),
+                Rule::InstructionControlChar => return Instruction::SendControlChar(payload),
+                Rule::InstructionExitCode => return Instruction::ExpectExitCode(payload),
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
+            };
+        }
+        unreachable!()
+    }
+}
+
+impl InstructionPayload {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        match pair.as_rule() {
+            Rule::InstructionLaunch
+            | Rule::InstructionStdin
+            | Rule::InstructionStdout
+            | Rule::InstructionRegex => {
+                InstructionPayload::StringPayload(StringPayload::parse_from(pair))
+            }
+            Rule::InstructionControlChar => {
+                InstructionPayload::CharacterPayload(CharacterPayload::parse_from(pair))
+            }
+            Rule::InstructionExitCode => {
+                InstructionPayload::ExitCodePayload(ExitCodePayload::parse_from(pair))
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl StringPayload {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = StringPayloadBuilder::default();
+        builder.process_id(0); // set default value for syntactic sugar
 
         for pair in pair.into_inner() {
             match pair.as_rule() {
                 Rule::ProcessNumber => {
-                    builder.process_id(u8::from_str_radix(pair.as_str(), 10).unwrap());
+                    builder.process_id(ProcessID::from_str_radix(pair.as_str(), 10).unwrap());
                 }
                 Rule::Payload => {
-                    builder.payload(pair.as_str().into());
-                }
-                Rule::InstructionIdentifier => {
-                    builder.kind(InstructionType::parse_from(
-                        pair.into_inner().nth(0).unwrap(),
-                    ));
+                    builder.string(pair.as_str().into());
                 }
                 _ => unreachable!(),
             }
@@ -84,28 +119,49 @@ impl Instruction {
     }
 }
 
-impl InstructionType {
+impl CharacterPayload {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
-        match pair.as_rule() {
-            Rule::IdentifierLaunch => InstructionType::LaunchProcess,
-            Rule::IdentifierStdin => InstructionType::PutStdin,
-            Rule::IdentifierStdout => InstructionType::ExpectStdout,
-            Rule::IdentifierRegex => InstructionType::ExpectRegex,
-            Rule::IdentifierControlChar => InstructionType::SendControlCharacter,
-            Rule::IdentifierExitCode => InstructionType::ExpectExitCode,
-            _ => unreachable!(),
+        let mut builder = CharacterPayloadBuilder::default();
+        builder.process_id(0); // set default value for syntactic sugar
+
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::ControlChar => {
+                    builder.process_id(ProcessID::from_str_radix(pair.as_str(), 10).unwrap());
+                }
+                Rule::Payload => {
+                    builder.character(pair.as_str().chars().nth(0).unwrap());
+                }
+                _ => unreachable!(),
+            }
         }
+
+        builder.build().unwrap()
     }
 }
 
+impl ExitCodePayload {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = ExitCodePayloadBuilder::default();
+        builder.process_id(0); // set default value for syntactic sugar
 
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::ProcessNumber => {
+                    builder.process_id(ProcessID::from_str_radix(pair.as_str(), 10).unwrap());
+                }
+                Rule::ExitCode => {
+                    builder.exit_code(ExitCode::from_str_radix(pair.as_str(), 10).unwrap());
+                }
+                _ => unreachable!(),
+            }
+        }
 
+        builder.build().unwrap()
+    }
+}
 
-
-
-
-
-pub fn get_pairs(input: &str) -> Pairs<Rule>{
+pub fn get_pairs(input: &str) -> Pairs<Rule> {
     TestFileParser::parse(Rule::TestSuite, input).unwrap()
 }
 
