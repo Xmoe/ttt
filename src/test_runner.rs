@@ -20,7 +20,8 @@ impl TestSuiteRunner {
         let mut successes: u32 = 0;
         for (index, test_case) in self.test_suite.test_cases.into_iter().enumerate() {
             let test_runner = TestRunner::new(test_case.clone());
-            print!("Running Test {}: {}\t", index + 1, test_case.name);
+            let text = format!("Running [{}]:", test_case.name);
+            print!("{text:<40}");
             match test_runner.run() {
                 Ok(()) => {
                     println!("Success!");
@@ -49,14 +50,13 @@ impl TestRunner {
 
     pub fn run(mut self) -> Result<(), TestRunnerError> {
         for instruction in self.test_case.instructions {
-            let process_id = instruction.process_id;
-            match instruction.specialization {
-                InstructionType::LaunchProcess(payload) => {
+            match instruction {
+                Instruction::LaunchProcess{string, process_id} => {
 
                     // rexpect gives no way to check whether a process has been successfully created until something is expected :(
                     // Use rust-psutil to detect aliveness of the program?
 
-                    let process = rexpect::session::spawn(&payload, Some(self.timeout.as_millis() as u64))?;
+                    let process = rexpect::session::spawn(&string, Some(self.timeout.as_millis() as u64))?;
                     if let Some(WaitStatus::StillAlive) = process.process.status() {
                         self.processes.insert(process_id, process);
                     } else {
@@ -64,51 +64,49 @@ impl TestRunner {
                     };
                 }
 
-                InstructionType::ExpectStdout => {
+                Instruction::ExpectStdout{string, process_id} => {
                     let process = self
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    let _ = process.exp_string(&payload)?;
+                    let _ = process.exp_string(&string)?;
                 }
 
-                InstructionType::PutStdin => {
+                Instruction::SendStdin{string, process_id} => {
                     let process = self
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    process.send_line(&payload)?;
+                    process.send_line(&string)?;
                 }
 
-                InstructionType::ExpectRegex => {
+                Instruction::ExpectRegex{string, process_id} => {
                     let process = self
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    process.exp_regex(&payload)?;
+                    process.exp_regex(&string)?;
                 }
 
-                InstructionType::SendControlCharacter => {
+                Instruction::SendControlChar{character, process_id} => {
                     let process = self
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    process.send_control(payload.chars().nth(0).unwrap())?;
+                    process.send_control(character)?;
                 }
 
-                InstructionType::ExpectExitCode => {
+                Instruction::ExpectExitCode{exit_code, process_id} => {
                     let process = self
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
 
-
+                    let expected_exit_code = exit_code;
+                    
                     //TODO: maybe set default timeout again for safety, because wait is blocking!
                     if let Ok(WaitStatus::Exited(_, exit_code)) = process.process.wait() {
-                        println!("Checking exit code");
-                        let expected_exit_code = i32::from_str_radix(&payload, 10).unwrap();
                         if exit_code != expected_exit_code {
-                            println!("Exit codes are unequal!");
                             return Err(TestRunnerError::WrongExitCode)
                         }
                     } else {

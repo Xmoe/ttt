@@ -14,7 +14,7 @@ trait ParseTreeToType {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self;
 }
 
-pub fn parse_to_ast(input: &str) -> Result<TestSuite, PestError> {
+pub fn parse(input: &str) -> Result<TestSuite, PestError> {
     let mut pairs = TestFileParser::parse(Rule::TestSuite, input)?;
     let pair = pairs.nth(0).unwrap();
     Ok(TestSuite::parse_from(pair))
