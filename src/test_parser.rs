@@ -1,4 +1,5 @@
-use pest::{iterators::Pairs, Parser};
+use derive_builder::Builder;
+use pest::Parser;
 use pest_derive::Parser;
 
 use crate::common::*;
@@ -9,14 +10,18 @@ pub struct TestFileParser;
 
 type PestError = pest::error::Error<Rule>;
 
+trait ParseTreeToType {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self;
+}
+
 pub fn parse_to_ast(input: &str) -> Result<TestSuite, PestError> {
     let mut pairs = TestFileParser::parse(Rule::TestSuite, input)?;
     let pair = pairs.nth(0).unwrap();
     Ok(TestSuite::parse_from(pair))
 }
 
-impl TestSuite {
-    pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+impl ParseTreeToType for TestSuite {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = TestSuiteBuilder::default();
         builder.name("hardcoded lol".into());
 
@@ -36,8 +41,8 @@ impl TestSuite {
     }
 }
 
-impl TestCase {
-    pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+impl ParseTreeToType for TestCase {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = TestCaseBuilder::default();
         let mut instructions = vec![];
 
@@ -56,21 +61,56 @@ impl TestCase {
     }
 }
 
-impl Instruction {
-    pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
-        println!("len: {}", pair.clone().into_inner().count());
+impl ParseTreeToType for Instruction {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         for pair in pair.into_inner() {
-            // get inner values before assigning them to their concrete type
-            let payload = InstructionPayload::parse_from(pair.clone());
-
-            println!("{:?}", pair.as_rule());
             match pair.as_rule() {
-                Rule::InstructionLaunch => return Instruction::LaunchProcess(payload),
-                Rule::InstructionStdin => return Instruction::SendStdin(payload),
-                Rule::InstructionStdout => return Instruction::ExpectStdout(payload),
-                Rule::InstructionRegex => return Instruction::ExpectRegex(payload),
-                Rule::InstructionControlChar => return Instruction::SendControlChar(payload),
-                Rule::InstructionExitCode => return Instruction::ExpectExitCode(payload),
+                Rule::InstructionLaunch => {
+                    let payload = StringPayload::parse_from(pair);
+                    return Instruction::LaunchProcess {
+                        string: payload.string,
+                        process_id: payload.process_id,
+                    };
+                }
+                Rule::InstructionStdin => {
+                    let payload = StringPayload::parse_from(pair);
+                    return Instruction::SendStdin {
+                        string: payload.string,
+                        process_id: payload.process_id,
+                    };
+                }
+                Rule::InstructionStdout => {
+                    let payload = StringPayload::parse_from(pair);
+
+                    return Instruction::ExpectStdout {
+                        string: payload.string,
+                        process_id: payload.process_id,
+                    };
+                }
+                Rule::InstructionRegex => {
+                    let payload = StringPayload::parse_from(pair);
+
+                    return Instruction::ExpectRegex {
+                        string: payload.string,
+                        process_id: payload.process_id,
+                    };
+                }
+                Rule::InstructionControlChar => {
+                    let payload = CharacterPayload::parse_from(pair);
+
+                    return Instruction::SendControlChar {
+                        character: payload.character,
+                        process_id: payload.process_id,
+                    };
+                }
+                Rule::InstructionExitCode => {
+                    let payload = ExitCodePayload::parse_from(pair);
+
+                    return Instruction::ExpectExitCode {
+                        exit_code: payload.exit_code,
+                        process_id: payload.process_id,
+                    };
+                }
                 _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             };
         }
@@ -78,27 +118,27 @@ impl Instruction {
     }
 }
 
-impl InstructionPayload {
-    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
-        match pair.as_rule() {
-            Rule::InstructionLaunch
-            | Rule::InstructionStdin
-            | Rule::InstructionStdout
-            | Rule::InstructionRegex => {
-                InstructionPayload::StringPayload(StringPayload::parse_from(pair))
-            }
-            Rule::InstructionControlChar => {
-                InstructionPayload::CharacterPayload(CharacterPayload::parse_from(pair))
-            }
-            Rule::InstructionExitCode => {
-                InstructionPayload::ExitCodePayload(ExitCodePayload::parse_from(pair))
-            }
-            _ => unreachable!(),
-        }
-    }
+// These are helper types to make parsing nicer
+
+#[derive(Debug, Clone, Builder)]
+pub struct StringPayload {
+    pub string: String,
+    pub process_id: ProcessID,
 }
 
-impl StringPayload {
+#[derive(Debug, Clone, Builder)]
+pub struct CharacterPayload {
+    pub character: char,
+    pub process_id: ProcessID,
+}
+
+#[derive(Debug, Clone, Builder)]
+pub struct ExitCodePayload {
+    pub exit_code: ExitCode,
+    pub process_id: ProcessID,
+}
+
+impl ParseTreeToType for StringPayload {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = StringPayloadBuilder::default();
         builder.process_id(0); // set default value for syntactic sugar
@@ -119,7 +159,7 @@ impl StringPayload {
     }
 }
 
-impl CharacterPayload {
+impl ParseTreeToType for CharacterPayload {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = CharacterPayloadBuilder::default();
         builder.process_id(0); // set default value for syntactic sugar
@@ -140,7 +180,7 @@ impl CharacterPayload {
     }
 }
 
-impl ExitCodePayload {
+impl ParseTreeToType for ExitCodePayload {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = ExitCodePayloadBuilder::default();
         builder.process_id(0); // set default value for syntactic sugar
@@ -159,10 +199,6 @@ impl ExitCodePayload {
 
         builder.build().unwrap()
     }
-}
-
-pub fn get_pairs(input: &str) -> Pairs<Rule> {
-    TestFileParser::parse(Rule::TestSuite, input).unwrap()
 }
 
 pub fn print_tree(input: &str) -> Result<(), PestError> {
