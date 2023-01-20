@@ -1,6 +1,7 @@
-use pest::Parser;
+use pest::{iterators::Pairs, Parser};
 use pest_derive::Parser;
 
+use crate::ast::*;
 use crate::common::*;
 
 #[derive(Parser)]
@@ -9,98 +10,103 @@ pub struct TestFileParser;
 
 type PestError = pest::error::Error<Rule>;
 
-pub fn parse(input: &str) -> Result<TestSuite, PestError> {
+pub fn parse_to_ast(input: &str) -> Result<TestSuite, PestError> {
     let mut pairs = TestFileParser::parse(Rule::TestSuite, input)?;
-    let pair = pairs.next().unwrap();
-
-    Ok(parse_test_suite(pair)?)
+    let pair = pairs.nth(0).unwrap();
+    Ok(TestSuite::parse_from(pair))
 }
 
-fn parse_test_suite(pair: pest::iterators::Pair<Rule>) -> Result<TestSuite, PestError> {
-    let mut test_suite_builder = TestSuiteBuilder::default();
-    test_suite_builder.name("hardcoded lol".into());
-    let mut test_cases = vec![];
 
-    for pair in pair.into_inner() {
-        match pair.as_rule() {
-            Rule::TestCase => {
-                test_cases.push(parse_test_case(pair));
-            }
-            _ => unreachable!("test_cases: {:#?}", pair.as_rule()),
-        }
-    }
+impl TestSuite {
+    pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = TestSuiteBuilder::default();
+        builder.name("hardcoded lol".into());
 
-    test_suite_builder.test_cases(test_cases);
-    Ok(test_suite_builder.build().unwrap())
-}
+        let mut test_cases = vec![];
 
-fn parse_test_case(pair: pest::iterators::Pair<Rule>) -> TestCase {
-    let mut test_case_builder = TestCaseBuilder::default();
-    let mut instructions = vec![];
-
-    for pair in pair.into_inner() {
-        match pair.as_rule() {
-            Rule::TestCaseName => {
-                test_case_builder.name(pair.as_str().to_owned());
-            }
-            Rule::Instruction => {
-                instructions.push(parse_instruction(pair));
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    test_case_builder.instructions(instructions);
-    test_case_builder.build().unwrap()
-}
-
-fn parse_instruction(pair: pest::iterators::Pair<Rule>) -> Instruction {
-    let mut process_id = None; // Actually optional as syntactic sugar for process 0
-    let mut payload = None;
-
-    let mut rule = None;
-
-    for pair in pair.into_inner() {
-        match pair.as_rule() {
-            Rule::Payload => payload = Some(pair.as_str().to_owned()),
-            Rule::ProcessNumber => process_id = Some(pair.as_str().parse::<u8>().unwrap()),
-            Rule::InstructionIdentifier => rule = Some(pair.into_inner().next().unwrap().as_rule()),
-            _ => unreachable!(),
-        }
-    }
-
-    if let Some(rule) = rule {
-        if let Some(payload) = payload {
-            // default process is 0 if no specific ID is given
-            let process_id = process_id.unwrap_or(0);
-
-            match rule {
-                Rule::IdentifierLaunch => return Instruction::LaunchProcess(payload, process_id),
-                Rule::IdentifierStdin => return Instruction::PutStdin(payload, process_id),
-                Rule::IdentifierStdout => return Instruction::ExpectStdout(payload, process_id),
-                Rule::IdentifierRegex => return Instruction::ExpectRegex(payload, process_id),
-                Rule::IdentifierControlChar => {
-                    // TODO: should encode valid control characters in grammar
-                    if payload.len() != 1 {
-                        panic!("Control char must be exactly length one")
-                    }
-                    let control_char = payload.chars().next().unwrap();
-
-                    return Instruction::SendControlCharacter(control_char, process_id);
-                }
-                Rule::IdentifierExitCode => {
-                    let exit_code = payload.parse::<i32>().unwrap();
-
-                    return Instruction::ExpectExitCode(exit_code, process_id);
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::TestCase => {
+                    test_cases.push(TestCase::parse_from(pair));
                 }
                 _ => unreachable!(),
             }
         }
+
+        builder.test_cases(test_cases);
+        builder.build().unwrap()
     }
-    unreachable!(
-        "Reached unreachable: rule: {:?}, payload: {:?}, id: {:?}",
-        rule, payload, process_id
-    );
+}
+
+impl TestCase {
+    pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = TestCaseBuilder::default();
+        let mut instructions = vec![];
+
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::TestCaseName => {
+                    builder.name(pair.as_str().into());
+                }
+                Rule::Instruction => instructions.push(Instruction::parse_from(pair)),
+                _ => unreachable!(),
+            }
+        }
+
+        builder.instructions(instructions);
+        builder.build().unwrap()
+    }
+}
+
+impl Instruction {
+    pub fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = InstructionBuilder::default();
+        builder.process_id(0);
+
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::ProcessNumber => {
+                    builder.process_id(u8::from_str_radix(pair.as_str(), 10).unwrap());
+                }
+                Rule::Payload => {
+                    builder.payload(pair.as_str().into());
+                }
+                Rule::InstructionIdentifier => {
+                    builder.kind(InstructionType::parse_from(
+                        pair.into_inner().nth(0).unwrap(),
+                    ));
+                }
+                _ => unreachable!(),
+            }
+        }
+
+        builder.build().unwrap()
+    }
+}
+
+impl InstructionType {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        match pair.as_rule() {
+            Rule::IdentifierLaunch => InstructionType::LaunchProcess,
+            Rule::IdentifierStdin => InstructionType::PutStdin,
+            Rule::IdentifierStdout => InstructionType::ExpectStdout,
+            Rule::IdentifierRegex => InstructionType::ExpectRegex,
+            Rule::IdentifierControlChar => InstructionType::SendControlCharacter,
+            Rule::IdentifierExitCode => InstructionType::ExpectExitCode,
+            _ => unreachable!(),
+        }
+    }
+}
+
+
+
+
+
+
+
+
+pub fn get_pairs(input: &str) -> Pairs<Rule>{
+    TestFileParser::parse(Rule::TestSuite, input).unwrap()
 }
 
 pub fn print_tree(input: &str) -> Result<(), PestError> {

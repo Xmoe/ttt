@@ -3,6 +3,9 @@
 [First test]
 $ echo blub
 > blub
+> asdf
+> adler
+> das sind aber viele dinger hier, junge junge
 ? 0
 
 [Second test]
@@ -10,8 +13,11 @@ $ uname
 r (l|L)inux
 ? 0
 
-[Third test]
-1$ sleep 10
-1^ C
+[Sleep for 5 secs]
+1$ sleep 5
+1? 0
+
+[This should fail]
+$ this_process_doesnt_exist
 
 # Hopefully this file can be parsed

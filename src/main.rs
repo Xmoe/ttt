@@ -1,21 +1,44 @@
-use std::fs::{self, read_to_string};
+mod common;
+mod test_parser;
+mod test_runner;
+mod ast;
+
+use std::{env::current_dir, fs};
 
 use anyhow::Result;
-use ttt::test_parser::print_tree;
+use ttt::test_parser::get_pairs;
 
-pub mod common;
-pub mod test_parser;
-pub mod test_runner;
+use crate::test_parser::parse_to_ast;
+
 
 //extern crate pest_derive;
 
 fn main() -> Result<()> {
     let test_file_data = fs::read_to_string("sample.test")?;
+    
+    test_parser::print_tree(&test_file_data)?;
 
-    //print_tree(&test_file_data)?;
+    //let x = get_pairs(&test_file_data);
+    //println!("{:#?}", x);
 
-    let test_suite = test_parser::parse(&test_file_data)?;
-    println!("{:#?}", test_suite);
+    let tree =  parse_to_ast(&test_file_data)?;
+    println!("{tree:#?}");
+    /*
+    match tree {
+        ast::TestSuiteNode::TestCases(test_cases) => {
+            for case in test_cases {
+                println!("{:#?}", case);
+            }
+        },
+    }
+
+    */
+    //let test_suite: common::TestSuite = test_parser::parse(&test_file_data)?;
+    //let runner = test_runner::TestSuiteRunner::new(test_suite);
+    //runner.run();
+
+    //println!("{:#?}", test_suite);
+
 
     Ok(())
 }

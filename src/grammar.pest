@@ -1,7 +1,10 @@
 EOL = _{ NEWLINE+ | &EOI}
+Space = _{ " " }
 
 HeaderOpen = _{ "[" }
 HeaderClose = _{ "]" }
+
+// This is a match on ANYthing, that is not EOL and not HeaderClose, multiple times
 TestCaseName = ${ (!HeaderClose ~ !EOL ~ ANY)+ }
 TestCaseHeader = _{ HeaderOpen ~ TestCaseName ~ HeaderClose ~ EOL }
 
@@ -17,9 +20,9 @@ IdentifierExitCode = { "?" }
 
 // TODO: better categorising of Instructions
 
-InstructionIdentifier = { (IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierControlChar | IdentifierExitCode) ~ " " }
+InstructionIdentifier = { (IdentifierLaunch | IdentifierStdin | IdentifierStdout | IdentifierRegex | IdentifierControlChar | IdentifierExitCode) }
 
-Instruction = { ProcessNumber? ~ InstructionIdentifier ~ Payload ~ EOL}
+Instruction = { ProcessNumber? ~ InstructionIdentifier ~ Space ~ Payload ~ EOL}
 
 TestCase = { TestCaseHeader ~ Instruction+ }
 

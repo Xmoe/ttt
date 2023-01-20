@@ -1,4 +1,6 @@
-use ttt::prelude::*;
+use ttt::common::*;
+use ttt::test_runner::*;
+
 
 #[test]
 fn sample_test() -> Result<(), TestRunnerError> {

@@ -3,9 +3,8 @@
 pub mod common;
 pub mod test_runner;
 pub mod test_parser;
+pub mod ast;
 
 pub mod prelude {
-    pub use crate::common::*;
-    pub use crate::test_runner::*;
-    pub use crate::test_parser::*;
+    // Add usefull stuff here later
 }
