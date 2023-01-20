@@ -1,7 +1,7 @@
 use crate::common::*;
 
 use rexpect::process::wait::WaitStatus;
-use rexpect::session::{PtySession};
+use rexpect::session::PtySession;
 use std::collections::HashMap;
 use std::time::Duration;
 use thiserror::Error;
@@ -18,7 +18,9 @@ impl TestSuiteRunner {
     // TODO: Add context like programs vars etc to parameters
     pub fn run(self) {
         let mut successes: u32 = 0;
-        for (index, test_case) in self.test_suite.test_cases.into_iter().enumerate() {
+        let max_cases = self.test_suite.test_cases.len();
+
+        for test_case in self.test_suite.test_cases {
             let test_runner = TestRunner::new(test_case.clone());
             let text = format!("Running [{}]:", test_case.name);
             print!("{text:<40}");
@@ -30,6 +32,7 @@ impl TestSuiteRunner {
                 Err(_) => println!("FAIL"),
             }
         }
+        println!("{}/{} Successfull tests.", successes, max_cases)
     }
 }
 

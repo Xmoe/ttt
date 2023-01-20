@@ -16,7 +16,7 @@ trait ParseTreeToType {
 
 pub fn parse(input: &str) -> Result<TestSuite, PestError> {
     let mut pairs = TestFileParser::parse(Rule::TestSuite, input)?;
-    let pair = pairs.nth(0).unwrap();
+    let pair = pairs.next().unwrap();
     Ok(TestSuite::parse_from(pair))
 }
 
@@ -170,7 +170,7 @@ impl ParseTreeToType for CharacterPayload {
                     builder.process_id(ProcessID::from_str_radix(pair.as_str(), 10).unwrap());
                 }
                 Rule::Payload => {
-                    builder.character(pair.as_str().chars().nth(0).unwrap());
+                    builder.character(pair.as_str().chars().next().unwrap());
                 }
                 _ => unreachable!(),
             }

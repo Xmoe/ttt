@@ -12,8 +12,6 @@ use test_runner::TestSuiteRunner;
 fn main() -> Result<()> {
     let test_file_data = fs::read_to_string("sample.test")?;
 
-    test_parser::print_tree(&test_file_data)?;
-
     let test_suite = parse(&test_file_data)?;
     //println!("{test_suite:#?}");
 
