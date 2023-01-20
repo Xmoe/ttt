@@ -121,19 +121,19 @@ impl ParseTreeToType for Instruction {
 // These are helper types to make parsing nicer
 
 #[derive(Debug, Clone, Builder)]
-pub struct StringPayload {
+struct StringPayload {
     pub string: String,
     pub process_id: ProcessID,
 }
 
 #[derive(Debug, Clone, Builder)]
-pub struct CharacterPayload {
+struct CharacterPayload {
     pub character: char,
     pub process_id: ProcessID,
 }
 
 #[derive(Debug, Clone, Builder)]
-pub struct ExitCodePayload {
+struct ExitCodePayload {
     pub exit_code: ExitCode,
     pub process_id: ProcessID,
 }
