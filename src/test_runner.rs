@@ -124,12 +124,17 @@ impl TestRunner {
                                     return Err(TestRunnerError::WrongExitCode)
                                 }
                             },
-                            WaitStatus::Signaled(_, Signal::SIGSEGV, _) => return Err(TestRunnerError::SegFault),
-                            _ => {
+
+                            WaitStatus::StillAlive |
+                            WaitStatus::Continued(_) => {
                                 if start.elapsed() > self.timeout {
                                     return Err(TestRunnerError::Timeout)
                                 }
                             },
+
+                            // Warn especially on segfault
+                            WaitStatus::Signaled(_, Signal::SIGSEGV, _) => return Err(TestRunnerError::SegFault),
+                            _ => return Err(TestRunnerError::ProgramStoppedEarly),
                         }
                         // Hardcoded sleep to waste less CPU Cycles
                         sleep(Duration::from_millis(100))
@@ -151,7 +156,7 @@ pub enum TestRunnerError {
     #[error("Wrong exit code")]
     WrongExitCode,
     #[error("Program exited early")]
-    ProgramCrashed,
+    ProgramStoppedEarly,
     #[error("Program segfaulted")]
     SegFault,
     #[error("Invalid Control Character")]
