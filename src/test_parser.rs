@@ -107,6 +107,7 @@ impl ParseTreeToType for Instruction {
                     let payload = ExitCodePayload::parse_from(pair);
 
                     return Instruction::ExpectExitCode {
+                        modifier: payload.modifier,
                         exit_code: payload.exit_code,
                         process_id: payload.process_id,
                     };
@@ -134,6 +135,7 @@ struct CharacterPayload {
 
 #[derive(Debug, Clone, Builder)]
 struct ExitCodePayload {
+    pub modifier: ExitCodeModifier,
     pub exit_code: ExitCode,
     pub process_id: ProcessID,
 }
@@ -183,7 +185,9 @@ impl ParseTreeToType for CharacterPayload {
 impl ParseTreeToType for ExitCodePayload {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = ExitCodePayloadBuilder::default();
-        builder.process_id(0); // set default value for syntactic sugar
+        // set default values for syntactic sugar
+        builder.process_id(0);
+        builder.modifier(ExitCodeModifier::Equals);
 
         for pair in pair.into_inner() {
             match pair.as_rule() {
@@ -192,6 +196,15 @@ impl ParseTreeToType for ExitCodePayload {
                 }
                 Rule::ExitCode => {
                     builder.exit_code(ExitCode::from_str_radix(pair.as_str(), 10).unwrap());
+                }
+                Rule::ExitCodeModifier => {
+                    builder.modifier(
+                        match pair.as_str() {
+                            "<" => ExitCodeModifier::LessThan,
+                            ">" => ExitCodeModifier::MoreThan,
+                            _ => ExitCodeModifier::Equals,
+                        }
+                    );
                 }
                 _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }

@@ -34,4 +34,9 @@ $ sleep 5
 [Test 8 ✗ (invalid process)]
 $ this_process_doesnt_exist
 
+[Test 9 ✓ (exit code with modifier)]
+$ echo blub
+> blub
+? <10
+
 # Hopefully this file can be parsed

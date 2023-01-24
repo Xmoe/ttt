@@ -40,7 +40,15 @@ pub enum Instruction {
         process_id: ProcessID,
     },
     ExpectExitCode {
+        modifier: ExitCodeModifier,
         exit_code: ExitCode,
         process_id: ProcessID,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum ExitCodeModifier {
+    Equals,
+    LessThan,
+    MoreThan,
 }

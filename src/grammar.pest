@@ -19,7 +19,8 @@ InstructionStdout = { ProcessNumber? ~ ">" ~ Space ~ Payload ~ EOL }
 InstructionRegex = { ProcessNumber? ~ "r" ~ Space ~ Payload ~ EOL }
 Payload = ${ (!NEWLINE ~ ANY)* ~ &EOL }
 
-InstructionExitCode = { ProcessNumber? ~ "?" ~ Space ~ ExitCode ~ EOL}
+InstructionExitCode = { ProcessNumber? ~ "?" ~ Space ~ ExitCodeModifier? ~ ExitCode ~ EOL}
+ExitCodeModifier = { "<" | ">"}
 ExitCode = { ASCII_DIGIT+ ~ &EOL}
 
 InstructionControlChar = { ProcessNumber? ~ "^" ~ Space ~ ControlChar ~ EOL}

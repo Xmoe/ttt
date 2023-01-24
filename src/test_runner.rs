@@ -102,7 +102,7 @@ impl TestRunner {
                     process.send_control(character)?;
                 }
 
-                Instruction::ExpectExitCode{exit_code, process_id} => {
+                Instruction::ExpectExitCode{exit_code, process_id, modifier} => {
                     let process = self
                         .processes
                         .get_mut(&process_id)
@@ -115,14 +115,10 @@ impl TestRunner {
                     let start = time::Instant::now();
 
                     // Wait until the process has exited or the timeout has been reached
-                    loop {
+                    let exit_code = loop {
                         match process.status()? {
                             WaitStatus::Exited(_, exit_code) => {
-                                if exit_code == expected_exit_code {
-                                    return Ok(())
-                                } else {
-                                    return Err(TestRunnerError::WrongExitCode)
-                                }
+                                break exit_code
                             },
 
                             WaitStatus::StillAlive |
@@ -139,6 +135,18 @@ impl TestRunner {
                         // Hardcoded sleep to waste less CPU Cycles
                         sleep(Duration::from_millis(100))
                     };
+
+                    let valid_exit_code = match modifier {
+                        ExitCodeModifier::Equals => exit_code == expected_exit_code,
+                        ExitCodeModifier::LessThan => exit_code < expected_exit_code,
+                        ExitCodeModifier::MoreThan => exit_code > expected_exit_code,
+                    };
+
+                    if valid_exit_code {
+                        return Ok(())
+                    }
+
+                    return Err(TestRunnerError::WrongExitCode)
                 }
                 //Instruction::SetTimeout(payload) => todo!(),
                 //Instruction::SetVariable(payload) => todo!(),
