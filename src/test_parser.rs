@@ -151,7 +151,7 @@ impl ParseTreeToType for StringPayload {
                 Rule::Payload => {
                     builder.string(pair.as_str().into());
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }
         }
 
@@ -166,13 +166,13 @@ impl ParseTreeToType for CharacterPayload {
 
         for pair in pair.into_inner() {
             match pair.as_rule() {
-                Rule::ControlChar => {
+                Rule::ProcessNumber => {
                     builder.process_id(ProcessID::from_str_radix(pair.as_str(), 10).unwrap());
                 }
-                Rule::Payload => {
+                Rule::ControlChar => {
                     builder.character(pair.as_str().chars().next().unwrap());
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }
         }
 
@@ -193,7 +193,7 @@ impl ParseTreeToType for ExitCodePayload {
                 Rule::ExitCode => {
                     builder.exit_code(ExitCode::from_str_radix(pair.as_str(), 10).unwrap());
                 }
-                _ => unreachable!(),
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }
         }
 
