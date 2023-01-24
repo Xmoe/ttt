@@ -1,23 +1,37 @@
 # The parser looks somewhat stable right now, yay :D
 
-[First test]
+[Test 1 ✓ (basic)]
 $ echo blub
 > blub
-> asdf
-> adler
-> das sind aber viele dinger hier, junge junge
+
+[Test 2 ✓ (correct exit code)]
+$ echo blub
+> blub
 ? 0
 
-[Second test]
+[Test 3 ✗ (incorrect exit code)]
+$ echo blub
+> blub
+? 1
+
+[Test 4 ✗ (different output expected)]
+$ echo test
+> text
+
+[Test 5 ✓ (regex matching)]
 $ uname
 r (l|L)inux
 ? 0
 
-[Sleep for 5 secs]
-1$ sleep 5
+[Test 6 ✓ (sleep less than timeout)]
+1$ sleep 1
 1? 0
 
-[This should fail]
+[Test 7 ✗ (sleep more than timeout)]
+$ sleep 5
+? 0
+
+[Test 8 ✗ (invalid process)]
 $ this_process_doesnt_exist
 
 # Hopefully this file can be parsed
