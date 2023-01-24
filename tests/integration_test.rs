@@ -1,64 +1,34 @@
 use ttt::common::*;
+use ttt::test_parser;
+use ttt::test_parser::*;
 use ttt::test_runner::*;
 
-
 #[test]
-fn sample_test() -> Result<(), TestRunnerError> {
-    let instructions = vec![
-        Instruction::LaunchProcess("uname".into(), 0),
-        Instruction::ExpectStdout("Linux".into(), 0),
-        Instruction::ExpectExitCode(0, 0),
-    ];
+fn sample_test() {
+    let test_data = "[Test 1]\n\
+                            $ echo blub\n\
+                            > blub\n\
+                            ? 0\n";
 
-    let test_case = TestCase {
-        name: "Example".into(),
-        instructions,
-    };
+    let test_suite = test_parser::parse(test_data).unwrap();
 
-    let runner = TestRunner::new(test_case);
-    runner.run()?;
-
-    Ok(())
+    let runner = TestSuiteRunner::new(test_suite);
+    runner.run();
 }
 
 #[test]
-fn use_each_instruction() -> Result<(), TestRunnerError> {
-    let instructions = vec![
-        Instruction::LaunchProcess("uname".into(), 0),
-        Instruction::PutStdin("wololo".into(), 0),
-        Instruction::ExpectStdout("Linux".into(), 0),
-        Instruction::ExpectExitCode(0, 0),
-        Instruction::LaunchProcess("uname".into(), 1),
-        Instruction::ExpectRegex(r"(l|L)inux".into(), 1),
-        Instruction::SendControlCharacter('C', 1),
-        Instruction::ExpectExitCode(0, 1),
-    ];
+fn use_each_instruction() {
+    let test_data = "[Test 2]\n\
+    0$ echo blub\n\
+    0> blub\n\
+    1$ cat\n\
+    1< foo bar\n\
+    1r foo bar\n\
+    1^ d\n\
+    1? 0\n";
 
-    let test_case = TestCase {
-        name: "Beispiel".into(),
-        instructions,
-    };
+    let test_suite = test_parser::parse(test_data).unwrap();
 
-    let runner = TestRunner::new(test_case);
-    runner.run()?;
-
-    Ok(())
-}
-
-#[test]
-#[should_panic]
-fn verify_control_character() {
-    let instructions = vec![
-        Instruction::LaunchProcess("sleep 100".into(), 0),
-        Instruction::SendControlCharacter('C', 0),
-        Instruction::ExpectExitCode(0, 0),
-    ];
-
-    let test_case = TestCase {
-        name: "Beispiel".into(),
-        instructions,
-    };
-
-    let runner = TestRunner::new(test_case);
-    runner.run().unwrap();
+    let runner = TestSuiteRunner::new(test_suite);
+    runner.run();
 }
