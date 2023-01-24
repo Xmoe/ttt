@@ -1,9 +1,11 @@
 use crate::common::*;
 
-use rexpect::process::wait::WaitStatus;
-use rexpect::session::PtySession;
+use expectrl::{self, Signal, WaitStatus};
+use nix;
 use std::collections::HashMap;
-use std::time::Duration;
+use std::io::{self, Write};
+use std::thread::sleep;
+use std::time::{self, Duration};
 use thiserror::Error;
 
 pub struct TestSuiteRunner {
@@ -23,13 +25,15 @@ impl TestSuiteRunner {
         for test_case in self.test_suite.test_cases {
             let test_runner = TestRunner::new(test_case.clone());
             let text = format!("Running [{}]:", test_case.name);
-            print!("{text:<40}");
+            let text_offset = 50;
+            print!("{:<text_offset$}", text);
+            io::stdout().flush().unwrap();
             match test_runner.run() {
                 Ok(()) => {
                     println!("Success!");
                     successes += 1;
                 }
-                Err(_) => println!("FAIL"),
+                Err(e) => println!("FAIL with {:?}", e),
             }
         }
         println!("{}/{} Successfull tests.", successes, max_cases)
@@ -38,14 +42,15 @@ impl TestSuiteRunner {
 
 pub struct TestRunner {
     timeout: Duration,
-    processes: HashMap<u8, PtySession>,
+    processes: HashMap<u8, expectrl::Session>,
     test_case: TestCase,
 }
 
 impl TestRunner {
     pub fn new(test_case: TestCase) -> Self {
         TestRunner {
-            timeout: Duration::from_secs(5),
+            // TODO: Hardcoded timeout
+            timeout: Duration::from_secs(3),
             processes: HashMap::new(),
             test_case,
         }
@@ -58,13 +63,11 @@ impl TestRunner {
 
                     // rexpect gives no way to check whether a process has been successfully created until something is expected :(
                     // Use rust-psutil to detect aliveness of the program?
+                    let mut session = expectrl::spawn(string)?;
+                    session.set_expect_timeout(Some(self.timeout));
 
-                    let process = rexpect::session::spawn(&string, Some(self.timeout.as_millis() as u64))?;
-                    if let Some(WaitStatus::StillAlive) = process.process.status() {
-                        self.processes.insert(process_id, process);
-                    } else {
-                        return Err(TestRunnerError::InvalidProcess)
-                    };
+                    self.processes.insert(process_id, session);
+
                 }
 
                 Instruction::ExpectStdout{string, process_id} => {
@@ -72,7 +75,7 @@ impl TestRunner {
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    let _ = process.exp_string(&string)?;
+                    let _ = process.expect(&string)?;
                 }
 
                 Instruction::SendStdin{string, process_id} => {
@@ -88,7 +91,7 @@ impl TestRunner {
                         .processes
                         .get_mut(&process_id)
                         .ok_or(TestRunnerError::InvalidProcess)?;
-                    process.exp_regex(&string)?;
+                    process.expect(expectrl::Regex(&string))?;
                 }
 
                 Instruction::SendControlChar{character, process_id} => {
@@ -106,15 +109,31 @@ impl TestRunner {
                         .ok_or(TestRunnerError::InvalidProcess)?;
 
                     let expected_exit_code = exit_code;
-                    
-                    //TODO: maybe set default timeout again for safety, because wait is blocking!
-                    if let Ok(WaitStatus::Exited(_, exit_code)) = process.process.wait() {
-                        if exit_code != expected_exit_code {
-                            return Err(TestRunnerError::WrongExitCode)
+
+                    // Emulating the the timeout behaviour from expectrl::session::sync_session::Session::expect_greedy
+                    // expectrl timeouts only apply on each Session::expect()
+                    let start = time::Instant::now();
+
+                    // Wait until the process has exited or the timeout has been reached
+                    loop {
+                        match process.status()? {
+                            WaitStatus::Exited(_, exit_code) => {
+                                if exit_code == expected_exit_code {
+                                    return Ok(())
+                                } else {
+                                    return Err(TestRunnerError::WrongExitCode)
+                                }
+                            },
+                            WaitStatus::Signaled(_, Signal::SIGSEGV, _) => return Err(TestRunnerError::SegFault),
+                            _ => {
+                                if start.elapsed() > self.timeout {
+                                    return Err(TestRunnerError::Timeout)
+                                }
+                            },
                         }
-                    } else {
-                        return Err(TestRunnerError::WronglyExited)
-                    }
+                        // Hardcoded sleep to waste less CPU Cycles
+                        sleep(Duration::from_millis(100))
+                    };
                 }
                 //Instruction::SetTimeout(payload) => todo!(),
                 //Instruction::SetVariable(payload) => todo!(),
@@ -131,8 +150,18 @@ pub enum TestRunnerError {
     InvalidProcess,
     #[error("Wrong exit code")]
     WrongExitCode,
-    #[error("Process killed by signal or somethin")]
-    WronglyExited,
+    #[error("Program exited early")]
+    ProgramCrashed,
+    #[error("Program segfaulted")]
+    SegFault,
+    #[error("Invalid Control Character")]
+    InvalidControlChar,
+    #[error("Program timed out")]
+    Timeout,
     #[error(transparent)]
-    RexpectError(#[from] rexpect::error::Error),
+    ExpectrlError(#[from] expectrl::Error),
+    #[error(transparent)]
+    NixError(#[from] nix::Error),
+    #[error(transparent)]
+    IOError(#[from] io::Error),
 }
