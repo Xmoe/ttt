@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use derive_builder::Builder;
 use pest::Parser;
 use pest_derive::Parser;
@@ -23,7 +25,9 @@ pub fn parse(input: &str) -> Result<TestSuite, PestError> {
 impl ParseTreeToType for TestSuite {
     fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
         let mut builder = TestSuiteBuilder::default();
+        // TODO change hardcoded stuff
         builder.name("hardcoded lol".into());
+        let mut variables: HashMap<String, String> = HashMap::new();
 
         let mut test_cases = vec![];
 
@@ -32,10 +36,15 @@ impl ParseTreeToType for TestSuite {
                 Rule::TestCase => {
                     test_cases.push(TestCase::parse_from(pair));
                 }
+                Rule::VariableInitialization => {
+                    let var = VarParserHelper::parse_from(pair);
+                    variables.insert(var.variable, var.value);
+                }
                 _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }
         }
 
+        builder.variables(variables);
         builder.test_cases(test_cases);
         builder.build().unwrap()
     }
@@ -66,10 +75,11 @@ impl ParseTreeToType for Instruction {
         for pair in pair.into_inner() {
             match pair.as_rule() {
                 Rule::InstructionLaunch => {
-                    let payload = StringPayload::parse_from(pair);
+                    let payload = LaunchPayload::parse_from(pair);
                     return Instruction::LaunchProcess {
                         string: payload.string,
                         process_id: payload.process_id,
+                        variable: payload.variable,
                     };
                 }
                 Rule::InstructionStdin => {
@@ -122,6 +132,12 @@ impl ParseTreeToType for Instruction {
 // These are helper types to make parsing nicer
 
 #[derive(Debug, Clone, Builder)]
+struct VarParserHelper {
+    pub variable: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, Builder)]
 struct StringPayload {
     pub string: String,
     pub process_id: ProcessID,
@@ -137,6 +153,13 @@ struct CharacterPayload {
 struct ExitCodePayload {
     pub modifier: ExitCodeModifier,
     pub exit_code: ExitCode,
+    pub process_id: ProcessID,
+}
+
+#[derive(Debug, Clone, Builder)]
+struct LaunchPayload {
+    pub variable: Option<String>,
+    pub string: String,
     pub process_id: ProcessID,
 }
 
@@ -198,13 +221,57 @@ impl ParseTreeToType for ExitCodePayload {
                     builder.exit_code(ExitCode::from_str_radix(pair.as_str(), 10).unwrap());
                 }
                 Rule::ExitCodeModifier => {
-                    builder.modifier(
-                        match pair.as_str() {
-                            "<" => ExitCodeModifier::LessThan,
-                            ">" => ExitCodeModifier::MoreThan,
-                            _ => ExitCodeModifier::Equals,
-                        }
-                    );
+                    builder.modifier(match pair.as_str() {
+                        "<" => ExitCodeModifier::LessThan,
+                        ">" => ExitCodeModifier::MoreThan,
+                        _ => ExitCodeModifier::Equals,
+                    });
+                }
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
+            }
+        }
+
+        builder.build().unwrap()
+    }
+}
+
+impl ParseTreeToType for LaunchPayload {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = LaunchPayloadBuilder::default();
+        // set default values for syntactic sugar
+        builder.process_id(0);
+        builder.variable(None);
+
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::ProcessNumber => {
+                    builder.process_id(ProcessID::from_str_radix(pair.as_str(), 10).unwrap());
+                }
+                Rule::Payload => {
+                    builder.string(pair.as_str().to_string());
+                }
+                Rule::Variable => {
+                    builder.variable(Some(pair.as_str().to_string()));
+                }
+                _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
+            }
+        }
+
+        builder.build().unwrap()
+    }
+}
+
+impl ParseTreeToType for VarParserHelper {
+    fn parse_from(pair: pest::iterators::Pair<Rule>) -> Self {
+        let mut builder = VarParserHelperBuilder::default();
+
+        for pair in pair.into_inner() {
+            match pair.as_rule() {
+                Rule::Variable => {
+                    builder.variable(pair.as_str().to_string());
+                }
+                Rule::Value => {
+                    builder.value(pair.as_str().to_string());
                 }
                 _ => unreachable!("Rule: {:?} | Content: {}", pair.as_rule(), pair.as_str()),
             }

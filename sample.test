@@ -1,5 +1,10 @@
 # The parser looks somewhat stable right now, yay :D
 
+# Variables must be declared before the first test case
+
+{program_name} = echo
+{another_variable} = asdf
+
 [Test 1 ✓ (basic)]
 $ echo blub
 > blub
@@ -38,5 +43,9 @@ $ this_process_doesnt_exist
 $ echo blub
 > blub
 ? <10
+
+[Test 10 ✓ (variable as program name)]
+$ {program_name} blub
+> blub
 
 # Hopefully this file can be parsed

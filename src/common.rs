@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use derive_builder::Builder;
 
 pub type ProcessID = u8;
@@ -8,6 +10,7 @@ pub type ExitCode = i32;
 pub struct TestSuite {
     pub name: String,
     pub test_cases: Vec<TestCase>,
+    pub variables: HashMap<String, String>,
 }
 
 /// A single test case
@@ -20,6 +23,7 @@ pub struct TestCase {
 #[derive(Debug, Clone)]
 pub enum Instruction {
     LaunchProcess {
+        variable: Option<String>,
         string: String,
         process_id: ProcessID,
     },

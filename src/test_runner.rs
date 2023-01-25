@@ -17,13 +17,12 @@ impl TestSuiteRunner {
         TestSuiteRunner { test_suite }
     }
 
-    // TODO: Add context like programs vars etc to parameters
     pub fn run(self) {
         let mut successes: u32 = 0;
         let max_cases = self.test_suite.test_cases.len();
 
         for test_case in self.test_suite.test_cases {
-            let test_runner = TestRunner::new(test_case.clone());
+            let test_runner = TestRunner::new(test_case.clone(), &self.test_suite.variables);
             let text = format!("Running [{}]:", test_case.name);
             let text_offset = 50;
             print!("{:<text_offset$}", text);
@@ -40,29 +39,51 @@ impl TestSuiteRunner {
     }
 }
 
-pub struct TestRunner {
+pub struct TestRunner<'a> {
+    test_case: TestCase,
     timeout: Duration,
     processes: HashMap<u8, expectrl::Session>,
-    test_case: TestCase,
+    variables: &'a HashMap<String, String>,
 }
 
-impl TestRunner {
-    pub fn new(test_case: TestCase) -> Self {
+impl<'a> TestRunner<'a> {
+    pub fn new(test_case: TestCase, variables: &'a HashMap<String, String>) -> Self {
         TestRunner {
             // TODO: Hardcoded timeout
             timeout: Duration::from_secs(3),
             processes: HashMap::new(),
             test_case,
+            variables,
         }
     }
 
     pub fn run(mut self) -> Result<(), TestRunnerError> {
         for instruction in self.test_case.instructions {
-            match instruction {
-                Instruction::LaunchProcess{string, process_id} => {
+            /*
+            let process = match instruction {
+                Instruction::SendStdin { process_id, .. } |
+                Instruction::ExpectStdout { process_id, .. } |
+                Instruction::ExpectRegex { process_id, .. } |
+                Instruction::SendControlChar { process_id, .. } |
+                Instruction::ExpectExitCode { process_id, .. } => {
+                    let process = self
+                    .processes
+                    .get_mut(&process_id)
+                    .ok_or(TestRunnerError::InvalidProcess)?;
+                    Some(process)
+                }
+                Instruction::LaunchProcess { process_id, .. } => None,
+            };
+            */
 
-                    // rexpect gives no way to check whether a process has been successfully created until something is expected :(
-                    // Use rust-psutil to detect aliveness of the program?
+            match instruction {
+                Instruction::LaunchProcess{variable, mut string, process_id} => {
+
+                    if let Some(var) = variable {
+                        let value = self.variables.get(&var).ok_or(TestRunnerError::UninitializedVariable)?;
+                        string = format!("{value} {string}")
+                    }
+
                     let mut session = expectrl::spawn(string)?;
                     session.set_expect_timeout(Some(self.timeout));
 
@@ -171,6 +192,8 @@ pub enum TestRunnerError {
     InvalidControlChar,
     #[error("Program timed out")]
     Timeout,
+    #[error("Variable not set")]
+    UninitializedVariable,
     #[error(transparent)]
     ExpectrlError(#[from] expectrl::Error),
     #[error(transparent)]
