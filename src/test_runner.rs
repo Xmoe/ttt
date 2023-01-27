@@ -84,11 +84,11 @@ impl<'a> TestRunner<'a> {
                         string = format!("{value} {string}")
                     }
 
-                    let mut session = expectrl::spawn(string)?;
-                    session.set_expect_timeout(Some(self.timeout));
-
-                    self.processes.insert(process_id, session);
-
+                    match expectrl::spawn(string) {
+                        // Transform IO error to own error type
+                        Err(expectrl::Error::IO(_)) => return Err(TestRunnerError::ProgramDoesNotExist),
+                        session => self.processes.insert(process_id, session?)
+                    };
                 }
 
                 Instruction::ExpectStdout{string, process_id} => {
@@ -180,6 +180,8 @@ impl<'a> TestRunner<'a> {
 
 #[derive(Error, Debug)]
 pub enum TestRunnerError {
+    #[error("The program does not exist or is not executable")]
+    ProgramDoesNotExist,
     #[error("Invalid Process ID")]
     InvalidProcess,
     #[error("Wrong exit code")]
