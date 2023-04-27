@@ -53,11 +53,16 @@ All instructions need to be assigned to a `test case`, or more specifically list
   - `< hey program, how are you doing?`
 - `^ char` - sends a [control character](https://en.wikipedia.org/wiki/C0_and_C1_control_codes) to the process
   - `^ C`
-- `? [OPT comparison] exit_code` - expect the program to end with `exit_code`. `comparison` may be `<` or `>` to specify a number above or below a certain value instead of equal value
-  - `? <3`
+- `? exit_code` - expect the program to end with `exit_code`.
+  - `? 3`
 
 
 ### Variables
+
+INCOMPLETE FEATURE
+
+The variable "{0}" will always be the name of the tested program for now.
+Setting variables in the .test file is not supported for now.
 
 Variables can be set in front of the first test case or from the command line when executing ttt. A variable set in the `.test` file will be overwritten by a variable passed to as arg to ttt
 
@@ -112,9 +117,7 @@ Note that we reference the variable `{program_name}` but dont set it. This means
 This is all very pre-alpha and I mostly published it just to keep myself motivated to work on it :)
 
 ### Todo:
-- add CLI
-- clean up processes at the end of each test case
 - add timeout instruction
 - add a license
 - clean up the code
-  - rewrite the parser for the MCCCXXXVIth time
+  - rewrite the parser for the MCCCXXXVIIth time
