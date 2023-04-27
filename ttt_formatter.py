@@ -14,5 +14,5 @@ class TestResults:
         print(f"\n[SUMMARY] [{successes:2}/{len(self.results):2}] {self.program}")
         for failure in failures:
             print(f"Test '{failure.test_name}' at line {failure.line_number}:")
-            print(f"\tExpected: {failure.expected_value}")
-            print(f"\tActual:   {failure.actual_value}")
+            print(f"  Expected: {failure.expected_value}")
+            print(f"  Actual:   {failure.actual_value}")
