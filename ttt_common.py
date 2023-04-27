@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 class InstructionKind(Enum):
     LaunchProcess = auto()

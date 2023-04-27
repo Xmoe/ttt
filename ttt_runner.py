@@ -1,7 +1,7 @@
 from time import sleep
 from ttt_common import *
-from dataclasses import dataclass, field
-from typing import Union
+from dataclasses import dataclass
+from copy import deepcopy
 import pexpect
 
 
@@ -11,7 +11,8 @@ class TestSuiteRunner:
     variables: dict[str, str]
 
     def run(self):
-        return [VirtualMachine(test_case, self.variables).run() for test_case in self.test_suite.tests]
+        # deepcopy the test_case, because when the variables are replaced, following runs would use the same replaced variable
+        return [VirtualMachine(deepcopy(test_case), self.variables).run() for test_case in self.test_suite.tests]
 
 
 @dataclass
@@ -35,7 +36,6 @@ class VirtualMachine:
             for (key, value) in self.variables.items():
                 payload = instruction.payload.replace(key, value)
                 self.test_case.instructions[index].payload = payload
-
 
         for instruction in self.test_case.instructions:
             match instruction.kind:

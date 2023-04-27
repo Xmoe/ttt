@@ -1,7 +1,6 @@
 #from datetime import timedelta
 import re
 from ttt_common import *
-from pprint import pprint
 
 instruction_regex = re.compile(
     r" *(?P<process_id>\d*)(?P<instruction_kind>\$|<|>|r|^|\?) (?P<payload>.*)")
