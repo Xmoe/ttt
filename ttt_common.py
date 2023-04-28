@@ -52,10 +52,7 @@ class TestResults:
     results: list[TestResult]
 
     def display(self):
-        pprint(self.results)
-
         failures = [test for test in self.results if not test.successfull]
-        pprint(failures)
         num_successes = len(self.results) - len(failures)
 
         bg_color = Back.GREEN if len(
