@@ -1,11 +1,11 @@
 #! /usr/bin/python3
 
-from ttt_parser import parse
-from ttt_runner import TestSuiteRunner
-from ttt_formatter import TestResults
+import argparse
 from pathlib import Path
 
-import argparse
+from ttt_parser import parse
+from ttt_runner import TestSuiteRunner
+from ttt_common import TestResults
 
 cli = argparse.ArgumentParser(
     description="This program reads instructions from .test files and executes them on other processes as if they were interacted with by a human.",
