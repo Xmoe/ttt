@@ -7,6 +7,7 @@ import pexpect
 # TODO: get timeout from test file and store it in SingleTestCase
 TIMEOUT = 2
 
+
 @dataclass
 class TestSuiteRunner:
     test_suite: TestSuite
@@ -63,7 +64,8 @@ class VirtualMachine:
                 case InstructionKind.ExpectStdout:
                     process = self.processes[instruction.process_id]
                     try:
-                        process.expect_exact(instruction.payload, timeout=TIMEOUT)
+                        process.expect_exact(
+                            instruction.payload, timeout=TIMEOUT)
                     except pexpect.EOF:
                         return TestFailed(self.test_case.name, instruction.payload, process.before, instruction.line_number)
                     except pexpect.TIMEOUT:
@@ -77,7 +79,7 @@ class VirtualMachine:
                         return TestFailed(self.test_case.name, instruction.payload, process.before, instruction.line_number)
                     except pexpect.TIMEOUT:
                         return TestFailed(self.test_case.name, instruction.payload, "[PROCESS TIMED OUT]", instruction.line_number)
-               
+
                 case InstructionKind.ExpectExitCode:
                     process = self.processes[instruction.process_id]
                     if process.isalive():

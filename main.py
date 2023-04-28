@@ -27,7 +27,8 @@ test_suite = parse(args.test_vector)
 # TODO better variable handling
 
 for program in args.test_programs:
-    suite_runner = TestSuiteRunner(test_suite, {"{0}": str(program.absolute())})
+    suite_runner = TestSuiteRunner(
+        test_suite, {"{0}": str(program.absolute())})
     # TODO change return type of SuiteRunner
     results = suite_runner.run()
     results = TestResults(program, results)
