@@ -3,7 +3,7 @@ import re
 from ttt_common import *
 
 instruction_regex = re.compile(
-    r" *(?P<process_id>\d*)(?P<instruction_kind>\$|<|>|r|^|\?) (?P<payload>.*)")
+    r" *(?P<process_id>\d*)(?P<instruction_kind>\$|<|>|r|\^|\?) (?P<payload>.*)")
 test_header_regex = re.compile(r"\[(?P<test_name>.*)\]")
 
 
