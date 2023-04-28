@@ -2,9 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 
-from colorama import Back
-
-from pprint import pprint
+from colorama import Back, Fore
 
 
 class InstructionKind(Enum):
@@ -62,8 +60,8 @@ class TestResults:
             f"\n{bg_color}[SUMMARY] [{num_successes:2}/{len(self.results):2}] {Path(self.program).stem}{Back.RESET}")
         for failure in failures:
             print(
-                f"{Back.LIGHTYELLOW_EX}Test [{failure.test_name}] at line {failure.line_number}:{Back.RESET}")
+                f"{Fore.LIGHTYELLOW_EX}Test [{failure.test_name}] at line {failure.line_number}:{Fore.RESET}")
             print(
-                f"  Expected: {Back.LIGHTGREEN_EX}{failure.expected_value}{Back.RESET}")
+                f"  Expected: {Fore.LIGHTGREEN_EX}{failure.expected_value}{Fore.RESET}")
             print(
-                f"  Actual:   {Back.YELLOW}{failure.actual_value}{Back.RESET}")
+                f"  Actual:   {Fore.LIGHTRED_EX}{failure.actual_value}{Fore.RESET}")
