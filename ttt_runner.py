@@ -50,8 +50,9 @@ class VirtualMachine:
                         child = pexpect.spawn(cmd, args)
                         self.processes[instruction.process_id] = child
                     except pexpect.ExceptionPexpect as e:
-                        raise(e)
-                        return TestFailed(self.test_case.name, "Process spawned", f"Process {instruction.payload} could not be spawned", instruction.line_number)
+                        if "The command was not found or was not executable:" in e.value:
+                            return TestFailed(self.test_case.name, "Process spawned", f"Process {instruction.payload} could not be spawned", instruction.line_number)
+                        raise e
 
                 case InstructionKind.SendStdin:
                     process = self.processes[instruction.process_id]
