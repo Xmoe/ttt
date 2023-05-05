@@ -39,8 +39,8 @@ class TestSuite:
 class TestResult:
     successfull: bool
     test_name: str
-    expected_value: str = None
-    actual_value: str = None
+    expected_value: bytes = None
+    actual_value: bytes = None
     line_number: int = None
 
 

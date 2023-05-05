@@ -39,14 +39,16 @@ class VirtualMachine:
         # apply variables
         for index, instruction in enumerate(self.test_case.instructions):
             for (key, value) in self.variables.items():
-                payload = instruction.payload.replace(key, value)
+                payload = instruction.payload.replace(
+                    key.encode(), value.encode())
                 self.test_case.instructions[index].payload = payload
 
         for instruction in self.test_case.instructions:
             match instruction.kind:
 
                 case InstructionKind.LaunchProcess:
-                    cmdline = pexpect.split_command_line(instruction.payload)
+                    cmdline = pexpect.split_command_line(
+                        instruction.payload.decode("utf-8"))
                     cmd, args = cmdline[0], cmdline[1:]
                     try:
                         child = pexpect.spawn(cmd, args)
